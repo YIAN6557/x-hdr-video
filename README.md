@@ -48,6 +48,8 @@ ffmpeg -i 母版_HLG.mov -c:v libx264 -preset slow -crf 18 -profile:v high -pix_
 
 `-x264-params` 那一行最重要：它把标签写进码流。只用 `-c copy` 改容器里的标签，X 会忽略。
 
+母版是 PQ / HDR10（ffprobe 显示 `smpte2084`，达芬奇、LumaFusion 的 HDR 导出常见），要先转成 HLG，直接发会被 X 转成普通视频。命令见 [docs/03_编码方式.md](docs/03_编码方式.md) 的「方法 A2」。
+
 只有普通（SDR）成片，用一条命令直接做出 HDR 版：
 
 ```bash
@@ -79,7 +81,7 @@ zsh tools/hdr.sh 普通版.mp4 3 iPhone本机看.mov   # 同一条命令，输�
 |---|---|
 | [docs/01_尝试记录.md](docs/01_尝试记录.md) | 从拆解参考片到 4 次上传测试，每一步做了什么、结果怎样 |
 | [docs/02_X怎么处理视频.md](docs/02_X怎么处理视频.md) | X 的转码方式、8 个账号的对照表、为什么判断是账号的问题 |
-| [docs/03_编码方式.md](docs/03_编码方式.md) | 编码参数、亮度、检查方法、AI 提示词 |
+| [docs/03_编码方式.md](docs/03_编码方式.md) | 编码参数、PQ 转 HLG、亮度、检查方法、AI 提示词 |
 | [tools/check_x_video.sh](tools/check_x_video.sh) | 查一条帖子的视频在 X 上还是不是 HDR |
 | [tools/hdr.sh](tools/hdr.sh) | 普通视频 → HDR，一条命令（`.mp4` 发 X，`.mov` iPhone 本机看） |
 | [tools/make_lut.py](tools/make_lut.py) | 生成 SDR → HLG 的 3D LUT（hdr.sh 会调用） |
@@ -110,7 +112,7 @@ zsh tools/hdr.sh 普通版.mp4 3 iPhone本机看.mov   # 同一条命令，输�
 
 Some videos on X glow: clouds and sunlight look brighter than the app's white UI. That is HDR (HLG) video. We tried to post our own, failed four times, and then checked the files X actually serves for 8 accounts. This repo has the full log, the analysis and the tools.
 
-**Short answer.** Encode as **H.264 8-bit 4:2:0, HLG (arib-std-b67) + BT.2020, tags in the H.264 bitstream (VUI) as well as the container, no Dolby Vision**, and upload from a **desktop browser**. This only works on accounts where X reads color metadata. On other accounts X drops all color tags, whatever you upload. Post a short test first and run `tools/check_x_video.sh <post URL>`.
+**Short answer.** Encode as **H.264 8-bit 4:2:0, HLG (arib-std-b67) + BT.2020, tags in the H.264 bitstream (VUI) as well as the container, no Dolby Vision**, and upload from a **desktop browser**. This only works on accounts where X reads color metadata. On other accounts X drops all color tags, whatever you upload. Post a short test first and run `tools/check_x_video.sh <post URL>`. If your master is PQ / HDR10 (`smpte2084`), convert it to HLG first (`zscale=t=arib-std-b67:p=bt2020:m=bt2020nc:r=tv:npl=1000:d=error_diffusion,format=yuv420p`, see `docs/03`); X tone-maps PQ uploads to SDR.
 
 **What we found (as of 2026-10-31):**
 
