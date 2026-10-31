@@ -30,14 +30,18 @@ while read -r url; do
     -show_entries stream=width,height,color_transfer,color_primaries -of csv=p=0 $W/v.mp4)"
   prim=${prim%%,*}
   printf "  %4sx%-4s  transfer=%-13s primaries=%s\n" $w $h "${trc:-none}" "${prim:-none}"
-  best=$trc    # 最后一个是最高清晰度 / last one is the highest quality
+  best=$trc; short=$(( w < h ? w : h ))    # 最后一个是最高清晰度 / last one is the highest quality
 done < $W/urls.txt
 
 case $best in
   arib-std-b67) echo "✅ X 保留了 HDR（HLG）。 HLG_KEPT" ;;
   smpte2084)    echo "✅ X 保留了 HDR（PQ）。 PQ_KEPT" ;;
   bt709)        echo "⚠️  X 读到了 HDR，但把它转成了普通视频。多半是格式不对（HEVC、杜比视界、HDR10、iPhone 原生 HDR）。 TONE_MAPPED"
-                echo "    改用 H.264 8 位 + HLG + BT.2020，标签写进码流。 Re-encode as H.264 8-bit HLG with VUI tags." ;;
+                echo "    改用 H.264 8 位 + HLG + BT.2020，标签写进码流。 Re-encode as H.264 8-bit HLG with VUI tags."
+                if (( short <= 720 )); then
+                  echo "    最高只有 ${short}p：如果是用 X app 发的，先看「数据节省」是不是开着，它会在手机上先把视频压成 720p 的普通视频。"
+                  echo "    Only ${short}p: if posted from the X app, check that Data saver is off."
+                fi ;;
   *)            echo "❌ 没有任何色彩标记：X 没有读文件里的色彩信息。 TAGS_DROPPED"
                 echo "    如果上传的文件确实带 HLG 标记，多半是账号的问题，换格式也没用（见 README）。"
                 echo "    If your upload really had HLG tags, this account is probably not getting HDR processing." ;;

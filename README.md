@@ -23,6 +23,7 @@ X（推特）上有一类视频亮得"刺眼"：画面里的云、雪、阳光�
 6. **没法把 HDR "固定"在画面里。** 视频里的像素只是数字，"按多亮显示"是靠色彩标记告诉手机的。X 重新压缩时丢掉标记，画面数字原样不动，手机就按普通视频播，最亮只能到界面白。
 7. **存进 iPhone 相册要用 `.mov`。** H.264 8 位 HLG 存成 `.mp4` 隔空投送到相册，不按 HDR 播放；同样的编码存成 `.mov`，相册就按 HDR 播放（HEVC 10 位 `.mov` 也可以）。想从 iPhone 的 X app 发，就用 H.264 8 位 HLG 的 `.mov`：相册认它是 HDR，编码也是 X 要的。按目前的测试，HEVC 发到 X 会被转成普通视频。
 8. **上传方式救不了不能用的账号。** 第 5 次我们按网上流传的做法，把 H.264 8 位 HLG `.mov` 存进相册（相册里已经按 HDR 播放），用 X app 发，X 发出来的文件还是没有任何色彩标记，和电脑浏览器发的第 3 次一样。
+9. **X app 的「数据节省」模式也会让 HDR 失败，但不是我们的原因。** 打开后，X app 看起来会先在手机上把视频压成 720p 的普通视频再上传：X 下发的最高只有 720p，标记是 bt709（@naundob 的测试）。我们的号本来就关着，失败的样子也不一样：有 1080p、完全没有标记，用电脑浏览器发也一样。
 
 完整过程见 [docs/01_尝试记录.md](docs/01_尝试记录.md)，证据和分析见 [docs/02_X怎么处理视频.md](docs/02_X怎么处理视频.md)。
 
@@ -71,7 +72,7 @@ zsh tools/hdr.sh 普通版.mp4 3 iPhone本机看.mov   # 同一条命令，输�
 
 3. 看最后一行：
    - `HLG_KEPT`：你的号能发 HDR 视频。删掉测试帖，正式发。
-   - `TONE_MAPPED`：X 读到了 HDR，但格式不对。检查是不是 H.264、标签是不是写进了码流。
+   - `TONE_MAPPED`：X 读到了 HDR，但格式不对。检查是不是 H.264、标签是不是写进了码流。如果最高只有 720p，又是用 X app 发的，先看 X app 的「数据节省」是不是开着。
    - `TAGS_DROPPED`：X 没读色彩信息。如果文件没问题，就是账号的原因，**马上删帖**（颜色会发灰），改发普通版。
 
 脚本通过公开的 [fxtwitter](https://github.com/FixTweet/FxTwitter) 接口找到 X 实际播放的文件，只下载开头 3 MB，用 ffprobe 读标记。帖子必须公开、没删。
@@ -125,6 +126,7 @@ Some videos on X glow: clouds and sunlight look brighter than the app's white UI
 6. You can't "bake" HDR into the pixels. Brightness comes from the color tags; when X drops them, the pixel values stay the same and the player treats them as SDR.
 7. For the iPhone Photos app the container matters: H.264 8-bit HLG plays as HDR when saved as `.mov`, not as `.mp4` (HEVC 10-bit `.mov` also works). To post from the X iOS app, use an H.264 8-bit HLG `.mov`. X tone-maps HEVC to SDR.
 8. The upload path does not rescue an affected account: our fifth test (H.264 8-bit HLG `.mov`, already shown as HDR in Photos, posted from the X app) came back untagged, exactly like the desktop-browser upload.
+9. The X app's Data saver also breaks HDR, but differently: the app seems to re-encode the video on the phone first, so X serves at most 720p, tagged bt709 (@naundob's test). Our account had it off, and our failure looks different (1080p, no tags at all, same from desktop Chrome).
 
 **Files:** `docs/` (in Chinese) has the attempt log, the analysis with the 8-account table, and the encoding guide. `tools/check_x_video.sh` checks a post; `tools/hdr.sh` turns an SDR video into HLG (`.mp4` for X, `.mov` for iPhone); the other tools measure brightness. Requires ffmpeg (libx264/libx265), python3 and curl; the `.mov` output and Swift tools need macOS.
 
