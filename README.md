@@ -1,6 +1,6 @@
 # 在 X 上发 HDR 视频：全部测试、正确编码和结论
 
-X（推特）上有一类视频亮得"刺眼"：画面里的云、雪、阳光比手机界面的白色还亮很多。这是 HDR 视频。我们想自己做一条，在 X 上也这样发光，于是从拆解、编码、上传到下载 X 的文件逐个检查，前后试了 4 次，还查了 8 个账号在 X 上的视频。这个仓库是全部记录、得出的结论和用到的工具。
+X（推特）上有一类视频亮得"刺眼"：画面里的云、雪、阳光比手机界面的白色还亮很多。这是 HDR 视频。我们想自己做一条，在 X 上也这样发光，于是从拆解、编码、上传到下载 X 的文件逐个检查，前后试了 5 次，还查了 8 个账号在 X 上的视频。这个仓库是全部记录、得出的结论和用到的工具。
 
 > **一句话结论**
 >
@@ -21,7 +21,8 @@ X（推特）上有一类视频亮得"刺眼"：画面里的云、雪、阳光�
 4. **不是运气。** 同一个账号、同一种格式，结果是固定的；成功和失败的帖子在时间上交错，也不是 X 在某个时间统一打开了这个功能。
 5. **跟账号的什么有关，还不知道。** 可能是 X 的灰度测试、会员等级或别的设置。被认证（蓝标）不是关键：成功和失败的账号里都有认证账号。成功的有德语账号，也有中文账号，失败的也是两种都有，所以"按地区"的可能性不大，但不能排除。
 6. **没法把 HDR "固定"在画面里。** 视频里的像素只是数字，"按多亮显示"是靠色彩标记告诉手机的。X 重新压缩时丢掉标记，画面数字原样不动，手机就按普通视频播，最亮只能到界面白。
-7. **iPhone 本机看和发 X 要用不同的文件。** H.264 8 位隔空投送到 iPhone 相册，不会按 HDR 播放；相册要的是 HEVC 10 位 `.mov`。但按目前的测试，HEVC 发到 X 会被转成普通视频。
+7. **存进 iPhone 相册要用 `.mov`。** H.264 8 位 HLG 存成 `.mp4` 隔空投送到相册，不按 HDR 播放；同样的编码存成 `.mov`，相册就按 HDR 播放（HEVC 10 位 `.mov` 也可以）。想从 iPhone 的 X app 发，就用 H.264 8 位 HLG 的 `.mov`：相册认它是 HDR，编码也是 X 要的。按目前的测试，HEVC 发到 X 会被转成普通视频。
+8. **上传方式救不了不能用的账号。** 第 5 次我们按网上流传的做法，把 H.264 8 位 HLG `.mov` 存进相册（相册里已经按 HDR 播放），用 X app 发，X 发出来的文件还是没有任何色彩标记，和电脑浏览器发的第 3 次一样。
 
 完整过程见 [docs/01_尝试记录.md](docs/01_尝试记录.md)，证据和分析见 [docs/02_X怎么处理视频.md](docs/02_X怎么处理视频.md)。
 
@@ -110,7 +111,7 @@ zsh tools/hdr.sh 普通版.mp4 3 iPhone本机看.mov   # 同一条命令，输�
 
 ### HDR video on X: every test, the right encoding, and what we found
 
-Some videos on X glow: clouds and sunlight look brighter than the app's white UI. That is HDR (HLG) video. We tried to post our own, failed four times, and then checked the files X actually serves for 8 accounts. This repo has the full log, the analysis and the tools.
+Some videos on X glow: clouds and sunlight look brighter than the app's white UI. That is HDR (HLG) video. We tried to post our own, failed five times, and then checked the files X actually serves for 8 accounts. This repo has the full log, the analysis and the tools.
 
 **Short answer.** Encode as **H.264 8-bit 4:2:0, HLG (arib-std-b67) + BT.2020, tags in the H.264 bitstream (VUI) as well as the container, no Dolby Vision**, and upload from a **desktop browser**. This only works on accounts where X reads color metadata. On other accounts X drops all color tags, whatever you upload. Post a short test first and run `tools/check_x_video.sh <post URL>`. If your master is PQ / HDR10 (`smpte2084`), convert it to HLG first (`zscale=t=arib-std-b67:p=bt2020:m=bt2020nc:r=tv:npl=1000:d=error_diffusion,format=yuv420p`, see `docs/03`); X tone-maps PQ uploads to SDR.
 
@@ -122,7 +123,8 @@ Some videos on X glow: clouds and sunlight look brighter than the app's white UI
 4. It is not luck: results are consistent per account and format, and successes and failures are interleaved in time.
 5. We don't know what about the account matters (a staged rollout, subscription tier, a setting). Verification (blue check) and region don't seem to explain it.
 6. You can't "bake" HDR into the pixels. Brightness comes from the color tags; when X drops them, the pixel values stay the same and the player treats them as SDR.
-7. Use different files for X and for local iPhone playback: the Photos app only shows HEVC 10-bit HLG (`.mov`) as HDR, but X tone-maps HEVC to SDR.
+7. For the iPhone Photos app the container matters: H.264 8-bit HLG plays as HDR when saved as `.mov`, not as `.mp4` (HEVC 10-bit `.mov` also works). To post from the X iOS app, use an H.264 8-bit HLG `.mov`. X tone-maps HEVC to SDR.
+8. The upload path does not rescue an affected account: our fifth test (H.264 8-bit HLG `.mov`, already shown as HDR in Photos, posted from the X app) came back untagged, exactly like the desktop-browser upload.
 
 **Files:** `docs/` (in Chinese) has the attempt log, the analysis with the 8-account table, and the encoding guide. `tools/check_x_video.sh` checks a post; `tools/hdr.sh` turns an SDR video into HLG (`.mp4` for X, `.mov` for iPhone); the other tools measure brightness. Requires ffmpeg (libx264/libx265), python3 and curl; the `.mov` output and Swift tools need macOS.
 
